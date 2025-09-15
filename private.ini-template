@@ -1,3 +1,5 @@
+; copy edited version of this file with your data to private.ini
+
 [private]
 comm_port = COM6
 
