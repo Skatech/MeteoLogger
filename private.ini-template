@@ -1,0 +1,18 @@
+[private]
+comm_port = COM6
+
+conn_addr = "192.168.0.84" ;blank to use DHCP
+conn_gate = "192.168.0.1"
+conn_mask = "255.255.0.0"
+conn_dns1 = "192.168.0.1"
+conn_dns2 = "0.0.0.0"
+
+conn_ssid = "MYSSID"
+conn_pass = "MYPSK"
+
+conn_mdns = "Meteo"
+
+sntp_zone = "MSK-3"
+sntp_tsn1 = "0.ru.pool.ntp.org"
+sntp_tsn2 = "1.pool.ntp.org"
+sntp_tsn3 = "time.nist.gov"
