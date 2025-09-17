@@ -1,23 +1,9 @@
-#include "Meteo.h"
-#include <WiFi.h>
-#include <HTTPClient.h>
-
-int sendMessage(const String& request) {
-    WiFiClient wifi;
-    HTTPClient http;
-    int result = 0;
-    if (http.begin(wifi, request)) {
-        result = http.GET();
-    }
-    http.end();
-    wifi.stop();
-    return result;
-}
-
-#include <DateTime.h>
 #include <Wire.h>
 #include <DFRobot_AHT20.h>
 #include <DFRobot_BMP280.h>
+#include <DateTime.h>
+#include "Meteo.h"
+#include "Delay.h"
 
 // Meteostation
 // I2C device found at address 0x38  AHT20
@@ -45,7 +31,7 @@ void Meteo::initSensors() const {
     else Serial.println(F("OK"));
 }
 
-bool Meteo::updateSensors() {
+bool Meteo::updateSensors() { // 79 millis
     if (aht20.startMeasurementReady(true)) {
         humid = aht20.getHumidity_RH();  // Relative humidity, range 0-100 (%RH)
         temp1 = aht20.getTemperature_C(); // Temperature, range -40-80 (℃)
@@ -60,22 +46,10 @@ bool Meteo::updateSensors() {
     return false;
 }
 
-void Meteo::formatString(String& format) const {
-    format.replace(F("{TIMEX}"), String(timex));
-    format.replace(F("{MEASX}"), String(measx));
-    format.replace(F("{HUMID}"), String(humid));
-    format.replace(F("{TEMP1}"), String(temp1));
-    format.replace(F("{PRESS}"), String(press));
-    format.replace(F("{TEMP2}"), String(temp2));
-}
-
-String Meteo::formatTime(const char* timeCustomFormat) const {
-    return DateTime(timex).toString(timeCustomFormat);
-}
-
-bool Meteo::writeLogger() const {
-    String request(F("http://192.168.0.28:8080/push-data?stream=meteo&data={TIMEX};{MEASX};{HUMID};{TEMP1};{PRESS};{TEMP2}"));
-    formatString(request);
-    return sendMessage(request) == 200;
+bool Meteo::pollUpdate() {
+    static Delay delay;
+    if (delay.await(sensingPeriod))
+        return  updateSensors(); 
+    return false;
 }
 

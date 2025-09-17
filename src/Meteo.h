@@ -7,15 +7,16 @@ int sendMessage(const String& request);
 
 class Meteo {
 public:
+    Meteo(Meteo const&) = delete;
+    Meteo& operator=(Meteo const&) = delete;
+    Meteo(unsigned long sensingPeriodMs = 5000UL) : sensingPeriod(sensingPeriodMs) {}
+
     void initSensors() const;
     bool updateSensors();
-    bool writeLogger() const;
-    // Replacement blocks {TIMEX} {MEASX} {HUMID} {TEMP1} {PRESS} {TEMP2}
-    void formatString(String& format) const;
-    String formatTime(const char* timeCustomFormat) const;
+    bool pollUpdate();
 
-private:
+    unsigned long sensingPeriod;
     float humid = 0.0f, temp1 = 0.0f, press = 0.0f, temp2 = 0.0f;
     time_t timex = 0;
-    uint32_t measx = 0;    
+    uint32_t measx = 0;
 };

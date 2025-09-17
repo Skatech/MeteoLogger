@@ -11,11 +11,11 @@ public:
     //     return _begin;
     // }
 
-    // inline bool blank() {
-    //     return _begin == 0UL;
+    // inline void reset() {
+    //     return _begin = 0UL;
     // }
 
-    inline void reset() {
+    inline void sync() {
         _begin = millis();
     }
 
@@ -32,15 +32,11 @@ public:
     }
 
     bool zero_or_await(unsigned long ms) {
-        if (millis() - _begin >= ms) {
-            _begin += ms;
-            return true;
-        }
-        else if (_begin == 0UL) {
+        if (_begin == 0UL) {
             _begin = millis();
             return true;
         }
-        return false;
+        return await(ms);
     }
 
 private:
