@@ -1,5 +1,4 @@
 #include <Arduino.h>
-// #include <WiFi.h>
 #include "Meteo.h"
 #include "Logger.h"
 #include "init.h"

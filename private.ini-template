@@ -15,9 +15,7 @@ conn_pass = "MYPSK"
 conn_mdns = "Meteo" ;blank to disable mDNS
 
 sntp_zone = "MSK-3" ;blank to disable SNTP
-sntp_tsn1 = "0.ru.pool.ntp.org"
-sntp_tsn2 = "1.pool.ntp.org"
-sntp_tsn3 = "time.nist.gov"
+sntp_serv = "0.ru.pool.ntp.org;1.pool.ntp.org;time.nist.gov"
 
 ; webui settings authentification
 auth_user = "admin"

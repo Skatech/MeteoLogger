@@ -3,6 +3,17 @@
 #include <SNTPControl.h>
 #include "init.h"
 
+String getStringPartCsv(const String& str, unsigned int part, char separator = ';') {
+    for(unsigned int pt = 0, beg = 0, end; beg < str.length(); beg = end + 1) {
+        int pos = str.indexOf(separator, beg);
+        end = (pos >= 0) ? pos : str.length();
+        if (pt++ == part) {
+            return str.substring(beg, end);
+        }
+    }
+    return String();
+} 
+
 // Logs to serial connection status changes, return true when connected
 // WL_NO_SHIELD -> WiFi.begin() -> WL_DISCONNECTED -> WL_CONNECTED
 bool watchConnection() {
@@ -80,7 +91,11 @@ void initConnection() {
 }
 
 void initTimeSync() {
-    String sntp_zone(F(SNTP_ZONE)), sntp_tsn1(F(SNTP_TSN1)), sntp_tsn2(F(SNTP_TSN2)), sntp_tsn3(F(SNTP_TSN3));
+    String sntp_zone(F(SNTP_ZONE)), sntp_addr(F(SNTP_SERV));
+    String sntp_tsn1(getStringPartCsv(sntp_addr, 0)),
+        sntp_tsn2(getStringPartCsv(sntp_addr, 1)),
+        sntp_tsn3(getStringPartCsv(sntp_addr, 2));
+
     if (sntp_zone.length()) {
         Serial.print(F("SNTP Zone: "));
         Serial.print(sntp_zone);
@@ -91,7 +106,7 @@ void initTimeSync() {
         Serial.print(F(", "));
         Serial.println(sntp_tsn3);
 
-        Serial.print(F("Starting SNTP... "));
+        Serial.print(F("Starting SNTP client... "));
         SNTPControl::setup(sntp_zone, sntp_tsn1, sntp_tsn2, sntp_tsn3);
         Serial.println(SNTPControl::isEnabled() ? F("OK") : F("FAILED!"));
     }
