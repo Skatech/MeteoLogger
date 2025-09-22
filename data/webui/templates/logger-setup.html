@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
+    <title>Logger Setup</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Consolas;
+            font-size: 1em;
+            letter-spacing: -0.04em;
+        }
+        h1 {
+            margin: 0.5em 0;
+            text-align: center;
+            border-bottom: 1px solid #888;
+            font-size: 2.5rem;
+        }
+        p {
+            font-style: italic;
+        }
+        .container {
+            max-width: 25em;
+            margin: 0 auto;
+            padding: 0.5em;
+        }
+        label span {
+            display: inline-block;
+            width: 95%;
+        }
+        label input[type=text] {
+            padding: 0.1em 0.1em;
+            margin: 0.5em 0;
+            width: 98%;
+        }
+        input[type=submit]  {
+            padding: 0.1em 1em;
+            margin: 0.5em 0;
+            float: right;
+            font-size: 1.05em;
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Logger Setup</h1>
+        <form method="post" action="/logger-setup">
+            <label>
+                <span>Sensing period: *</span>
+                <input type="text" name="sensing" value="{SENSING}" required><br>
+            </label>
+            <label>
+                <span>Logging period: **</span>
+                <input type="text" name="logging" value="{LOGGING}" required><br>
+            </label>
+            <label>
+                <span>Logging request:</span>
+                <input type="text" name="request" value="{REQUEST}" required><br>
+            </label>
+            <input type="submit" value="Submit">
+            <p>* Periods in milliseconds, 5000 and 300000 by default</p>
+            <p>** Zero logging period disables logging</p>
+        </form>
+    </div>
+</body>
+</html>

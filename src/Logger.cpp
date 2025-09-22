@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <DateTime.h>
 #include "Logger.h"
 #include "Delay.h"
 
@@ -17,8 +18,8 @@ int sendMessage(const String& request) {
 
 bool Logger::pollWrite(const Meteo& meteo) {
     static Delay delay;
-    if (WiFi.isConnected()) {
-        if (delay.zero_or_await(loggingPeriod)) {
+    if (WiFi.isConnected() && DateTime::now().toSecondsSinceEpoch() > 1000000L) {
+        if (loggingPeriod > 0UL && delay.zero_or_await(loggingPeriod)) {
             String request(loggingRequest);
             request.replace(F("{TIMEX}"), String(meteo.timex));
             request.replace(F("{MEASX}"), String(meteo.measx));

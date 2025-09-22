@@ -1,0 +1,1 @@
+{"ssid":"MYSSID","pass":"MYPASS","host":"Meteo","addr":"192.168.0.84","gate":"192.168.0.1","mask":"255.255.0.0","dns1":"192.168.0.1","zone":"MSK-3","tsns":"0.ru.pool.ntp.org;1.pool.ntp.org;time.nist.gov","auth":"admin;admin"}

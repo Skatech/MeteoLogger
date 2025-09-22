@@ -1,22 +1,4 @@
-; copy edited version of this file with your data to private.ini
+; copy edited version of this file with your data as private.ini
 
 [private]
 comm_port = COM6
-
-conn_addr = "192.168.0.84" ;blank to use DHCP
-conn_gate = "192.168.0.1"
-conn_mask = "255.255.0.0"
-conn_dns1 = "192.168.0.1"
-conn_dns2 = "0.0.0.0"
-
-conn_ssid = "MYSSID"
-conn_pass = "MYPSK"
-
-conn_mdns = "Meteo" ;blank to disable mDNS
-
-sntp_zone = "MSK-3" ;blank to disable SNTP
-sntp_serv = "0.ru.pool.ntp.org;1.pool.ntp.org;time.nist.gov"
-
-; webui settings authentification
-auth_user = "admin"
-auth_pass = "password"

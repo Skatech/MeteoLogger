@@ -1,168 +1,130 @@
 #include <WebServer.h>
+#include <LittleFS.h>
 #include <DateTime.h>
 #include "webui.h"
+#include "DeviceConfig.h"
 #include "Meteo.h"
 #include "Logger.h"
 
+#define UNCHANGED_OPTION "(unchanged)"
+
+extern DeviceConfig cfg;
 extern Meteo meteo;
 extern Logger logger;
 
 WebServer webServer(80);
 
+String loadPageTemplate(const String& name) {
+    String data, path(F("/webui/templates/{NAME}.html"));
+    path.replace(F("{NAME}"), name);
+    File file = LittleFS.open(path);
+    if (file) {
+        data = file.readString();
+        file.close();
+    }
+    else webServer.send(500, F("text/plain"), F("Page template loading failed"));
+    return data;
+}
+
 bool checkAuthentified() {
-    if (webServer.authenticate(AUTH_USER, AUTH_PASS)) {
-        Serial.println(F("WebUI - Authentication GRANTED"));
+    String user = getStringPartCsv(cfg.auth, 0), pass = getStringPartCsv(cfg.auth, 1);
+    if (webServer.authenticate(user.c_str(), pass.c_str())) {
+        #if DEBUG
+        Serial.println(F("WebUI - Authentication granted"));
+        #endif
         return true;
     }
-    Serial.println(F("WebUI - Authentication requested..."));
-    webServer.requestAuthentication(BASIC_AUTH, "METEO-LOGGER-AUTH-REALM", F("Authentication failed"));
+    else {
+        #if DEBUG
+        Serial.println(F("WebUI - Authentication requested..."));
+        #endif
+
+        String html = loadPageTemplate(F("error"));
+        if (html.length()) {
+            html.replace(F("{ERRNUM}"), String(511));
+            html.replace(F("{ERRTXT}"), F("Authentication required"));
+        }
+        else html = F("Error 511: Authentication required");
+        webServer.requestAuthentication(BASIC_AUTH, "IOT-DEVICE-BASIC-AUTH-REALM", html);
+    }
     return false;
 }
 
 void webServerOnIndexPage() {
-    String html(F(R""""(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="data:,">
-    <title>Meteo Logger</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Consolas;
-            font-size: 1.05em;
-            letter-spacing: -0.04em;
+    String html = loadPageTemplate(F("index"));
+    if (html.length()) {
+        html.replace(F("{TEMPC}"), String((meteo.temp1 + meteo.temp2) / 2));
+        html.replace(F("{HUMID}"), String(meteo.humid));
+        html.replace(F("{PRESS}"), String(meteo.press, 1));
+        html.replace(F("{DATEX}"), String(DateTime(meteo.timex).toString("%T %a, %b %d, %Y"))); //19:02:43 Sat, Sep 13, 2025
+        html.replace(F("{MEASX}"), String(meteo.measx));
+        DateTime time = DateTime(millis() / 1000).toDateTimeUTC();
+        html.replace(F("{UPTIM}"), String(time.toSecondsSinceEpoch() / 86400) + time.toString("d %H:%M:%S"));
+        // html.replace(F("{UPTIM}"), DateTime(millis() / 1000).toDateTimeUTC().toString("%j %H:%M:%S"));
+        webServer.send(200, F("text/html"), html);
+    }
+}
+
+void webServerOnDeviceSetup() {
+    if (checkAuthentified()) {
+        String html = loadPageTemplate(F("device-setup"));
+        if (html.length()) {
+            html.replace(F("{SSID}"), cfg.ssid);
+            html.replace(F("{PASS}"), F(UNCHANGED_OPTION));
+            html.replace(F("{HOST}"), cfg.host);
+
+            html.replace(F("{ZONE}"), cfg.zone);
+            html.replace(F("{TSNS}"), cfg.tsns);
+
+            html.replace(F("{AUTH}"), F(UNCHANGED_OPTION));
+
+            html.replace(F("{ADDR}"), cfg.addr.toString());
+            html.replace(F("{GATE}"), cfg.gate.toString());
+            html.replace(F("{MASK}"), cfg.mask.toString());
+            html.replace(F("{DNS1}"), cfg.dns1.toString());
+            html.replace(F("{DNS2}"), cfg.dns2.toString());
+
+            webServer.send(200, F("text/html"), html);
         }
-        h1 {
-            margin: 1.5rem 0;
-            font-size: 2.5rem;
-            text-align: center;
+    }
+}
+
+void webServerOnDeviceSetupPOST() {
+    if (checkAuthentified()) {
+        for(int i = 0; i < webServer.args(); ++i) {
+            String k = webServer.argName(i), v = webServer.arg(i);
+            if ((k == F("pass") || k == F("auth")) && v == F(UNCHANGED_OPTION))
+                continue;
+            if (v.length() > 128)
+                continue;
+            cfg.setField(k, v);
         }
-        h4 {
-            max-width: calc(var(--width) + 2.5rem);
-            margin: 0;
-            border-bottom: 1px solid #888;
-            font-size: 1.5rem;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 0.5rem;
-        }
-	    .value {
-            margin: 0;
-            margin-bottom: 0.5rem;
-            color: #4285f4;
-            text-align: center;
-            font-size: 75px;
-        }
-        .param {
-            text-align: center;
-            margin: 0.5rem 0;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Meteo Logger</h1>
-        <h4>Temperature, °C</h4>
-        <div class="value">{TEMPC}</div>
-        <h4>Humidity, %</h4>
-        <div class="value">{HUMID}</div>
-        <h4>Pressure, mm</h4>
-        <div class="value">{PRESS}</div>
-        <h4>Details</h4>
-        <div class="param">{DATEX}</div>
-        <div class="param">Measurement: {MEASX}</div>
-        <div class="param"><a href="logger-setup">Logger Setup</a></div>
-    </div>
-</body>
-</html>
-)""""));
-    html.replace(F("{TEMPC}"), String((meteo.temp1 + meteo.temp2) / 2));
-    html.replace(F("{HUMID}"), String(meteo.humid));
-    html.replace(F("{PRESS}"), String(meteo.press, 1));
-    html.replace(F("{DATEX}"), String(DateTime(meteo.timex).toString("%H:%M:%S %a, %b %d, %Y"))); //19:02:43 Sat, Sep 13, 2025
-    html.replace(F("{MEASX}"), String(meteo.measx));
-    webServer.send(200, F("text/html"), html);
+
+        webServer.sendHeader(F("Location"), String(F("http://")) + webServer.hostHeader(), true);
+        webServer.send(302, F("text/plain"), F("Redirecting to main page"));
+
+        // Serial.println(F("Device config updated\n=============================="));
+        // cfg.print();
+        // Serial.println(F("==============================\n"));
+
+        Serial.print(F("Device configuration updated, saving... "));
+        Serial.println(cfg.save() ? F("OK") : F("FAILED"));
+        Serial.print(F("Restarting device... "));
+        ESP.restart();
+    }
 }
 
 void webServerOnLoggerSetup() {
-    String html(F(R""""(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="data:,">
-    <title>Logger Setup</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Consolas;
-            font-size: 1.05em;
-            letter-spacing: -0.04em;
+    if (checkAuthentified()) {
+        String html = loadPageTemplate(F("logger-setup"));
+        if (html.length()) {
+            html.replace(F("{SENSING}"), String(meteo.sensingPeriod));
+            html.replace(F("{LOGGING}"), String(logger.loggingPeriod));
+            html.replace(F("{REQUEST}"), logger.loggingRequest);
+
+            webServer.send(200, F("text/html"), html);
         }
-        h1 {
-            margin: 1.5rem 0;
-            font-size: 2.5rem;
-            text-align: center;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 0.5rem;
-        }
-        label span {
-            display: inline-block;
-            width: 95%;
-        }
-        label input[type=text] {
-            font-size: 1em;
-            padding: 0.1em 0.1em;
-            margin: 0.5em 0;
-            width: 95%;
-        }
-        input[type=submit] {
-            font-size: 1em;
-            padding: 0.1em 1em;
-            margin: 0.5em;
-            float: right;
-        }
-    </style>
-</head>
-<body>
-    <h1>Logger Setup</h1>
-    <div class="container">
-    <form method="post" action="/logger-setup">
-        <label>
-            <span>Sensing period:</span>
-            <input type="text" name="sensing" value="{SENSING}" required><br>
-        </label>
-        <label>
-            <span>Logging period:</span>
-            <input type="text" name="logging" value="{LOGGING}" required><br>
-        </label>
-        <label>
-            <span>Logging request:</span>
-            <input type="text" name="request" value="{REQUEST}" required><br>
-        </label>
-        <input type="submit" value="Submit">
-    </form>
-    </div>
-</body>
-</html>
-)""""));
-    html.replace(F("{SENSING}"), String(meteo.sensingPeriod));
-    html.replace(F("{LOGGING}"), String(logger.loggingPeriod));
-    html.replace(F("{REQUEST}"), logger.loggingRequest);
-    webServer.send(200, F("text/html"), html);
+    }
 }
 
 void webServerOnLoggerSetupPOST() {
@@ -185,18 +147,28 @@ void webServerOnLoggerSetupPOST() {
 }
 
 void webServerOnNotFound() {
+#if DEBUG
     Serial.print(F("Handling client "));
     Serial.print(webServer.client().remoteIP());
     Serial.print(F(", 404 Resource not found: "));
     Serial.println(webServer.uri());
-    webServer.send(404, F("text/plain"), F("Not found"));
+#endif
+    String html = loadPageTemplate(F("error"));
+    if (html.length()) {
+        html.replace(F("{ERRNUM}"), String(404));
+        html.replace(F("{ERRTXT}"), F("Resource not found"));
+        webServer.send(404, F("text/html"), html);
+    }
 };
 
 void initWebServer() {
     webServer.on(F("/"), HTTP_GET, webServerOnIndexPage);
     webServer.on(F("/logger-setup"), HTTP_GET, webServerOnLoggerSetup);
     webServer.on(F("/logger-setup"), HTTP_POST, webServerOnLoggerSetupPOST);
+    webServer.on(F("/device-setup"), HTTP_GET, webServerOnDeviceSetup);
+    webServer.on(F("/device-setup"), HTTP_POST, webServerOnDeviceSetupPOST);
     webServer.onNotFound(webServerOnNotFound);
+    webServer.serveStatic("/", LittleFS, "/webui/static/", "max-age=60"); //"max-age=3600" or "no-cache"
     webServer.begin();
 }
 

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png" sizes="32x32">
+    <title>Logger Setup</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Consolas;
+            font-size: 1em;
+            letter-spacing: -0.04em;
+        }
+        h1 {
+            margin: 0.5em 0;
+            text-align: center;
+            border-bottom: 1px solid #888;
+            font-size: 2.5rem;
+        }
+        p {
+            font-style: italic;
+        }
+        .container {
+            max-width: 25em;
+            margin: 0 auto;
+            padding: 0.5em;
+        }
+        label span {
+            display: inline-block;
+            width: 95%;
+        }
+        label input[type=text] {
+            padding: 0.1em 0.1em;
+            margin: 0.5em 0;
+            width: 98%;
+        }
+        input[type=submit]  {
+            padding: 0.1em 1em;
+            margin: 0.5em 0;
+            float: right;
+            font-size: 1.05em;
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Device Setup</h1>
+        <form method="post" action="/device-setup">
+        <label>
+            <span>SSID:</span>
+            <input type="text" name="ssid" value="{SSID}" required><br>
+        </label>
+        <label>
+            <span>Password:</span>
+            <input type="text" name="pass" value="{PASS}" required><br>
+        </label>
+        <label>
+            <span>Hostname:</span>
+            <input type="text" name="host" value="{HOST}" required><br>
+        </label>
+
+        <label>
+            <span>Timezone:</span>
+            <input type="text" name="zone" value="{ZONE}" required><br>
+        </label>
+        <label>
+            <span>Timeservers: *</span>
+            <input type="text" name="tsns" value="{TSNS}" required><br>
+        </label>
+
+        <label>
+            <span>Authentication: *</span>
+            <input type="text" name="auth" value="{AUTH}" required><br>
+        </label>
+
+        <label>
+            <span>Address: **</span>
+            <input type="text" name="addr" value="{ADDR}" required><br>
+        </label>
+        <label>
+            <span>Gateway:</span>
+            <input type="text" name="gate" value="{GATE}" required><br>
+        </label>
+        <label>
+            <span>Subnet:</span>
+            <input type="text" name="mask" value="{MASK}" required><br>
+        </label>
+        <label>
+            <span>DNS1:</span>
+            <input type="text" name="dns1" value="{DNS1}" required><br>
+        </label>
+        <label>
+            <span>DNS2:</span>
+            <input type="text" name="dns2" value="{DNS2}" required><br>
+        </label>
+        <input type="submit" value="Submit"><br>
+        <p>* Timeservers, web ahthentication login and password are separated by semicolon</p>
+        <p>** Manual IP configuration, disables DHCP</p>
+    </form>
+    </div>
+</body>
+</html>
