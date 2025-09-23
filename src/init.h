@@ -6,4 +6,4 @@ bool watchConnection();
 void initConnection(const DeviceConfig& cfg);
 void initTimeSync(const DeviceConfig& cfg);
 void mountFileSystem();
-void loadDeviceConfig(DeviceConfig& cfg);
+void loadDeviceConfig(DeviceConfig& cfg, bool tryLoadDefaultsWhenFailed);

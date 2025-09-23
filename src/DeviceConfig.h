@@ -22,7 +22,7 @@ public:
     IPAddress dns1;
     IPAddress dns2;
 
-    bool load();
+    bool load(bool defaults);
     bool save();
     bool setField(const String& name, const String& value);
     void print();

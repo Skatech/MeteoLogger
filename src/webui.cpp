@@ -30,7 +30,7 @@ bool checkAuthentified() {
     String user = getStringPartCsv(cfg.auth, 0), pass = getStringPartCsv(cfg.auth, 1);
     if (webServer.authenticate(user.c_str(), pass.c_str())) {
         #if DEBUG
-        Serial.println(F("WebUI - Authentication granted"));
+        Serial.println(F("WebUI - Authentication passed"));
         #endif
         return true;
     }
@@ -107,9 +107,9 @@ void webServerOnDeviceSetupPOST() {
         // cfg.print();
         // Serial.println(F("==============================\n"));
 
-        Serial.print(F("Device configuration updated, saving... "));
+        Serial.print(F("Device configuration updated. Saving... "));
         Serial.println(cfg.save() ? F("OK") : F("FAILED"));
-        Serial.print(F("Restarting device... "));
+        Serial.println(F("Restarting device..."));
         ESP.restart();
     }
 }

@@ -17,7 +17,7 @@ void setup(void) {
     Serial.println(F("======================"));
 
     mountFileSystem();
-    loadDeviceConfig(cfg);
+    loadDeviceConfig(cfg, false);
     initConnection(cfg);
     initTimeSync(cfg);
     initWebServer();

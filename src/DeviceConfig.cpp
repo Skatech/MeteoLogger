@@ -22,9 +22,10 @@ const FieldHandle __DeviceConfig_Fields[] = {
 };
 #pragma GCC diagnostic pop
 
-bool DeviceConfig::load() {
+bool DeviceConfig::load(bool defaults) {
     return ConfigUtils::loadJSON(__DeviceConfig_Fields,
-        sizeof(__DeviceConfig_Fields) / sizeof(FieldHandle), this, __DeviceConfig_File);
+        sizeof(__DeviceConfig_Fields) / sizeof(FieldHandle), this,
+            defaults ? F("/config/device-config-defaults.json") : __DeviceConfig_File);
 }
 
 bool DeviceConfig::save() {
