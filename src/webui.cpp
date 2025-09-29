@@ -27,6 +27,8 @@ String loadPageTemplate(const String& name) {
 }
 
 bool checkAuthentified() {
+    if(WiFi.getMode() == WIFI_AP)
+        return true;
     String user = getStringPartCsv(cfg.auth, 0), pass = getStringPartCsv(cfg.auth, 1);
     if (webServer.authenticate(user.c_str(), pass.c_str())) {
         #if DEBUG
@@ -53,14 +55,14 @@ bool checkAuthentified() {
 void webServerOnIndexPage() {
     String html = loadPageTemplate(F("index"));
     if (html.length()) {
+        html.replace(F("{FVERS}"), F(FIRMWARE_VERSION));
         html.replace(F("{TEMPC}"), String((meteo.temp1 + meteo.temp2) / 2));
         html.replace(F("{HUMID}"), String(meteo.humid));
         html.replace(F("{PRESS}"), String(meteo.press, 1));
         html.replace(F("{DATEX}"), String(DateTime(meteo.timex).toString("%T %a, %b %d, %Y"))); //19:02:43 Sat, Sep 13, 2025
         html.replace(F("{MEASX}"), String(meteo.measx));
-        DateTime time = DateTime(millis() / 1000).toDateTimeUTC();
-        html.replace(F("{UPTIM}"), String(time.toSecondsSinceEpoch() / 86400) + time.toString("d %H:%M:%S"));
-        // html.replace(F("{UPTIM}"), DateTime(millis() / 1000).toDateTimeUTC().toString("%j %H:%M:%S"));
+        unsigned long past = millis() / 1000UL;
+        html.replace(F("{UPTIM}"), String(past / 86400UL) + DateTime(past).toDateTimeUTC().toString(" days %T"));
         webServer.send(200, F("text/html"), html);
     }
 }
@@ -103,14 +105,14 @@ void webServerOnDeviceSetupPOST() {
         webServer.sendHeader(F("Location"), String(F("http://")) + webServer.hostHeader(), true);
         webServer.send(302, F("text/plain"), F("Redirecting to main page"));
 
-        // Serial.println(F("Device config updated\n=============================="));
-        // cfg.print();
-        // Serial.println(F("==============================\n"));
+        Serial.println(F("Device config updated\n=============================="));
+        cfg.print();
+        Serial.println(F("==============================\n"));
 
-        Serial.print(F("Device configuration updated. Saving... "));
-        Serial.println(cfg.save() ? F("OK") : F("FAILED"));
-        Serial.println(F("Restarting device..."));
-        ESP.restart();
+        // Serial.print(F("Device configuration updated. Saving... "));
+        // Serial.println(cfg.save() ? F("OK") : F("FAILED"));
+        // Serial.println(F("Restarting device..."));
+        // ESP.restart();
     }
 }
 
@@ -167,12 +169,21 @@ void initWebServer() {
     webServer.on(F("/logger-setup"), HTTP_POST, webServerOnLoggerSetupPOST);
     webServer.on(F("/device-setup"), HTTP_GET, webServerOnDeviceSetup);
     webServer.on(F("/device-setup"), HTTP_POST, webServerOnDeviceSetupPOST);
-    webServer.onNotFound(webServerOnNotFound);
     webServer.serveStatic("/", LittleFS, "/webui/static/", "max-age=60"); //"max-age=3600" or "no-cache"
+    webServer.onNotFound(webServerOnNotFound);
     webServer.begin();
 }
 
 void handleWebServer() {
-    if (WiFi.isConnected())
+    if (WiFi.isConnected() || (WiFi.getMode() == WIFI_AP && WiFi.softAPgetStationNum() > 0)) {
         webServer.handleClient();
+    }
+}
+
+void initWebServerAP() {
+    webServer.on(F("/"), HTTP_GET, webServerOnDeviceSetup);
+    webServer.on(F("/device-setup"), HTTP_POST, webServerOnDeviceSetupPOST);
+    webServer.serveStatic("/", LittleFS, "/webui/static/", "max-age=60");
+    webServer.onNotFound(webServerOnNotFound);
+    webServer.begin();
 }

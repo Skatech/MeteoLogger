@@ -18,6 +18,11 @@
             text-align: center;
             font-size: 2.5rem;
         }
+        h1 span {
+            vertical-align:bottom;
+            margin-left: 0.25rem;
+            font-size: 15px;
+        }
         .container {
             max-width: 25em;
             margin: 0 auto;
@@ -27,16 +32,22 @@
             max-width: calc(var(--width) + 2.5rem);
             margin: 0;
             border-bottom: 1px solid #888;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            display: block;
         }
-	    .value {
-            margin: 0;
+	    div.value {
             margin-bottom: 0.5rem;
             color: #4285f4;
             text-align: center;
             font-size: 75px;
         }
-        .param {
+        div.value span {
+            vertical-align:super;
+            margin-left: 0.25rem;
+            font-size: 28px;
+        }
+        div.param {
             text-align: center;
             margin: 0.5rem 0;
             font-size: 1.1rem;
@@ -46,13 +57,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Meteo Logger</h1>
-        <h4>Temperature, °C</h4>
-        <div class="value">{TEMPC}</div>
-        <h4>Humidity, %</h4>
-        <div class="value">{HUMID}</div>
-        <h4>Pressure, mm</h4>
-        <div class="value">{PRESS}</div>
+        <h1>Meteo Logger<span>v{FVERS}</span></h1>
+        <h4>Temperature</h4>
+        <div class="value">{TEMPC}<span>°C</span></div>
+        <h4>Humidity</h4>
+        <div class="value">{HUMID}<span>%</span></div>
+        <h4>Pressure</h4>
+        <div class="value">{PRESS}<span>mm</span></div>
         <h4>Details</h4>
         <div class="param">{DATEX}</div>
         <div class="param">Uptime: {UPTIM}</div>

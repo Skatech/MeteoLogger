@@ -6,7 +6,6 @@
 #include "DeviceConfig.h"
 
 DeviceConfig cfg;
-
 Meteo meteo(5000UL);
 Logger logger(F("http://192.168.0.28:8080/push-data?stream=meteo&data={TIMEX};{MEASX};{HUMID};{TEMP1};{PRESS};{TEMP2}"), 300000UL);
 
@@ -17,18 +16,28 @@ void setup(void) {
     Serial.println(F("======================"));
 
     mountFileSystem();
-    loadDeviceConfig(cfg, false);
-    initConnection(cfg);
-    initTimeSync(cfg);
-    initWebServer();
-    meteo.initSensors();
+    
+    if (monitorModeWPS(true)) {
+        loadDeviceConfig(cfg, true);
+        initAP();
+        initWebServerAP();
+    }
+    else {
+        loadDeviceConfig(cfg, false);
+        initConnection(cfg);
+        initTimeSync(cfg);
+        initWebServer();
+        meteo.initSensors();
+    }
 }
 
 void loop(void) {
-    watchConnection();
-    handleWebServer();
+    if (!monitorModeWPS()) {
+        watchConnection();
 
-    if (meteo.pollUpdate()) {
-        logger.pollWrite(meteo);
+        if (meteo.pollUpdate())
+            logger.pollWrite(meteo);
     }
+
+    handleWebServer();
 }

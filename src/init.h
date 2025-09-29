@@ -2,8 +2,10 @@
 #include <Arduino.h>
 #include "DeviceConfig.h"
 
+bool monitorModeWPS(bool init = false);
 bool watchConnection();
 void initConnection(const DeviceConfig& cfg);
 void initTimeSync(const DeviceConfig& cfg);
 void mountFileSystem();
 void loadDeviceConfig(DeviceConfig& cfg, bool tryLoadDefaultsWhenFailed);
+void initAP();

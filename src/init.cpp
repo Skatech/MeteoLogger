@@ -1,8 +1,32 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <NetBIOS.h>
 #include <SNTPControl.h>
 #include <LittleFS.h>
 #include "init.h"
+
+#define WPS_BUTTON_PIN  0
+#define WPS_CHANNEL     1
+#define WPS_HIDDEN      0
+#define WPS_MAXCONN     1
+
+// On init check WPS button state and select device mode;
+// Restart device when WPS button pressed in normal mode;
+// Return false in normal mode, true in WPS
+bool monitorModeWPS(bool init) {
+    static bool wps = false;
+    if (!wps) {
+        if (init) {
+            pinMode(WPS_BUTTON_PIN, INPUT_PULLUP);
+            wps = digitalRead(WPS_BUTTON_PIN) == LOW;
+        }
+        else if (digitalRead(WPS_BUTTON_PIN) == LOW) {
+            Serial.println(F("Restarting device in WPS mode\n\n"));
+            ESP.restart();
+        }
+    }
+    return wps;
+}
 
 template <typename T> void annotateValue(const __FlashStringHelper* title, const T& value) {
     Serial.print(title);
@@ -10,27 +34,42 @@ template <typename T> void annotateValue(const __FlashStringHelper* title, const
     Serial.println(value);
 }
 
-bool annotateOperation(const __FlashStringHelper* title, bool result) {
+bool annotateOperation(const __FlashStringHelper* title, bool result, const char* param = nullptr) {
     Serial.print(title);
+    if (param) {
+        Serial.print(' ');
+        Serial.print('(');
+        Serial.print(param);
+        Serial.print(')');
+    }
     Serial.print(F("... "));
     Serial.println(result ? F("OK") : F("FAILED"));
     return result;
 }
 
+void printInfoWPS() {
+    String info(F(R""""(
+To configure device restart it in WPS mode (keep pressed
+boot button during start), connect to device and open it configuration
+web page in browser (ssid, password and address can be marked on device case)
+    [AP: {SSID}, password: {PASS}, page: http://{ADDR} ({HOST}.local]))""""));
+    info.replace(F("{SSID}"), F(WPS_SSID));
+    info.replace(F("{PASS}"), F(WPS_PASS));
+    info.replace(F("{ADDR}"), F(WPS_ADDR));
+    info.replace(F("{HOST}"), F(WPS_SSID));
+    Serial.println(info);
+}
+
 void haltOnCriticalError(const __FlashStringHelper* message) {
     Serial.println(message);
-    Serial.println(F(R""""(
-        To configure device restart it in AP mode (keep pressed
-        boot button during start), connect to device and open it configuration
-        web page in browser (ssid, password and address marked ae device case)
-            [AP: MeteoLogger, password: initialize, page: http://192.168.4.1]
-        )""""));
+    printInfoWPS();
     while(true)
         delay(1000);
 }
 
 // Logs to serial connection status changes, return true when connected
 // WL_NO_SHIELD -> WiFi.begin() -> WL_DISCONNECTED -> WL_CONNECTED
+// Reconnect: @5 @6 @0 OK => WL_CONNECTION_LOST > WL_DISCONNECTED > WL_IDLE_STATUS > WL_CONNECTED
 bool watchConnection() {
     static auto old = WL_CONNECTED;
     auto now = WiFi.status();
@@ -53,10 +92,18 @@ bool watchConnection() {
     return now == WL_CONNECTED;
 }
 
+void initNameServices(const String& host) {
+    if (host.length()) {
+        annotateOperation(F("Initializing NetBIOS"), NBNS.begin(host.c_str()), host.c_str());
+        annotateOperation(F("Initializing MDNS"), MDNS.begin(host), host.c_str());
+        annotateOperation(F("Registering MDNS http service"), MDNS.addService(F("http"), F("tcp"), 80));
+    }
+}
+
 void initConnection(const DeviceConfig& cfg) {
     pinMode(LED_BUILTIN, OUTPUT);
-    
-    if (cfg.addr != IPAddress()) {
+
+    if (cfg.addr != INADDR_NONE) {
         annotateValue(F("Addr"), cfg.addr);
         annotateValue(F("Gate"), cfg.gate);
         annotateValue(F("Mask"), cfg.mask);
@@ -64,34 +111,65 @@ void initConnection(const DeviceConfig& cfg) {
         annotateValue(F("DNS2"), cfg.dns2);
 
         if (!annotateOperation(F("Changing IP configuration"),
-                WiFi.config(cfg.addr, cfg.gate, cfg.mask, cfg.dns1, cfg.dns2)))
-            haltOnCriticalError(F("Unable to configure IP, device HALTED"));
+                WiFi.config(cfg.addr, cfg.gate, cfg.mask, cfg.dns1, cfg.dns2))) {
+
+            if (!annotateOperation(F("Trying restore IP configuration to default DHCP"), WiFi.config(0U, 0U, 0U)))
+                haltOnCriticalError(F("Unable to configure IP, device HALTED"));
+        }
     }
 
-    annotateValue(F("SSID"), cfg.ssid);
-    WiFi.begin(cfg.ssid, cfg.pass);
+    if (!annotateOperation(F("Starting connection"), WiFi.setHostname(cfg.host.c_str())
+            && WiFi.mode(WIFI_STA) && WiFi.begin(cfg.ssid, cfg.pass), cfg.ssid.c_str())) {
+        haltOnCriticalError(F("Unable to start connection, device HALTED"));
+    }
+
     for(int attempt = 0; watchConnection() == false; ++attempt) {
-        if (attempt > 60)
-            haltOnCriticalError(F("Unable to connect, device HALTED"));
+        if (attempt == 60) {
+            Serial.println();
+            printInfoWPS();
+        }
         delay(1000);
     }
 
-    if (cfg.host.length()) {
-        annotateValue(F("Hostname"), cfg.host);
-        annotateOperation(F("Initializing DNS"), MDNS.begin(cfg.host));
+    initNameServices(cfg.host);
+}
+
+void initAP() {
+    WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+    Serial.println(F("Device in WPS mode, minimal TX power"));
+
+    String ssid(F(WPS_SSID)), pass(F(WPS_PASS));
+    IPAddress addr, mask(255,255,255,0);
+        
+    if (annotateOperation(F("Configuring AP"), WiFi.mode(WIFI_AP)
+            && WiFi.softAPsetHostname(ssid.c_str())
+            && addr.fromString(F(WPS_ADDR)) && WiFi.softAPConfig(addr, addr, mask))) {
+
+        if (annotateOperation(F("Starting AP"),
+                WiFi.softAP(ssid, pass, WPS_CHANNEL, WPS_HIDDEN, WPS_MAXCONN), ssid.c_str())) {
+
+            initNameServices(ssid);
+
+            annotateValue(F("SSID"), ssid);
+            annotateValue(F("Pass"), pass);
+            annotateValue(F("Addr"), addr);
+            // annotateValue(F("Host"), WiFi.getHostname());
+        }
+        else haltOnCriticalError(F("Unable to start AP, in WPS mode, device HALTED"));
     }
+    else haltOnCriticalError(F("Unable to configure device in WPS mode, device HALTED"));
 }
 
 void initTimeSync(const DeviceConfig& cfg) {
-    String tsn1(getStringPartCsv(cfg.tsns, 0)),
-        tsn2(getStringPartCsv(cfg.tsns, 1)), tsn3(getStringPartCsv(cfg.tsns, 2));
-
     if (cfg.zone.length() && cfg.tsns.length()) {
-        annotateValue(F("Time zone"), cfg.zone);
-        annotateValue(F("Time servers"), cfg.tsns);
-        annotateOperation(F("Starting SNTP client"), SNTPControl::setup(cfg.zone, tsn1, tsn2, tsn3));
+        Serial.print(F("Starting SNTP client ("));
+        Serial.print(cfg.zone);
+        Serial.print(F(", "));
+        Serial.print(cfg.tsns);
+        annotateOperation(F(")"), SNTPControl::setup(cfg.zone, getStringPartCsv(cfg.tsns, 0),
+            getStringPartCsv(cfg.tsns, 2), getStringPartCsv(cfg.tsns, 2)));
     }
-    else Serial.println(F("SNTP client not started, zone or server is not set properly"));
+    else Serial.println(F("SNTP client not started, zone or server is not properly set"));
 }
 
 void mountFileSystem() {
