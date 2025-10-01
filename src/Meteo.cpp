@@ -47,9 +47,14 @@ bool Meteo::updateSensors() { // 79 millis
 }
 
 bool Meteo::pollUpdate() {
-    static Delay delay;
-    if (delay.await(sensingPeriod))
-        return  updateSensors(); 
+    // static Delay delay;
+    // if (delay.check_with_advance(sensingPeriod))
+    //     return updateSensors(); 
+    static WatchMS watch;
+    if (watch.is_passed(sensingPeriod)) {
+        watch.try_advance_or_reset(sensingPeriod);
+        return updateSensors(); 
+    }
     return false;
 }
 

@@ -109,6 +109,10 @@ public:
         return time(nullptr);
     }
 
+    static bool isSyncronized() {
+        return time(nullptr) > 1000000L;
+    }
+
     // Constructs DateTime from parts, mon: 0-11, mday: 1-31, hour: 0-23, min: 0-59, sec: 0-60*
     static DateTime fromParts(uint16_t year, uint8_t mon,
             uint8_t mday, uint8_t hour, uint8_t min, uint8_t sec);

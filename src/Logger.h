@@ -11,5 +11,8 @@ public:
 
     String loggingRequest;
     unsigned long loggingPeriod;
+
+    uint32_t countSuccess = 0U, countFails = 0U, countLastFails = 0U;
+
     bool pollWrite(const Meteo& meteo);
 };

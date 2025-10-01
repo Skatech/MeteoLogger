@@ -62,7 +62,11 @@ void webServerOnIndexPage() {
         html.replace(F("{DATEX}"), String(DateTime(meteo.timex).toString("%T %a, %b %d, %Y"))); //19:02:43 Sat, Sep 13, 2025
         html.replace(F("{MEASX}"), String(meteo.measx));
         unsigned long past = millis() / 1000UL;
-        html.replace(F("{UPTIM}"), String(past / 86400UL) + DateTime(past).toDateTimeUTC().toString(" days %T"));
+        html.replace(F("{UPTIM}"), String(past / 86400UL) + DateTime(past).toDateTimeUTC().toString("-%T"));
+
+        html.replace(F("{TSUCC}"), String(logger.countSuccess));
+        html.replace(F("{TFAIL}"), String(logger.countFails));
+        html.replace(F("{LFAIL}"), String(logger.countLastFails));
         webServer.send(200, F("text/html"), html);
     }
 }

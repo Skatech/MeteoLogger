@@ -14,7 +14,7 @@
             letter-spacing: -0.04em;
         }
         h1 {
-            margin: 0.5em 0;
+            margin: 0.5em 0 0.5em 1.2em;
             text-align: center;
             font-size: 2.5rem;
         }
@@ -61,13 +61,15 @@
         <h4>Temperature</h4>
         <div class="value">{TEMPC}<span>°C</span></div>
         <h4>Humidity</h4>
-        <div class="value">{HUMID}<span>%</span></div>
+        <div class="value">{HUMID}<span>%&nbsp</span></div>
         <h4>Pressure</h4>
         <div class="value">{PRESS}<span>mm</span></div>
         <h4>Details</h4>
         <div class="param">{DATEX}</div>
         <div class="param">Uptime: {UPTIM}</div>
         <div class="param">Measurement: {MEASX}</div>
+        <div class="param" title="total success / total fails / last fails">Logger: {TSUCC}/{TFAIL}/{LFAIL}</div>
+
         <h4>Links</h4>
         <div class="param"><a href="device-setup">Device Setup</a></div>
         <div class="param"><a href="logger-setup">Logger Setup</a></div>

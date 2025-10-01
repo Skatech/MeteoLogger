@@ -7,6 +7,9 @@
 int sendMessage(const String& request) {
     WiFiClient wifi;
     HTTPClient http;
+    http.setConnectTimeout(1000);
+    http.setTimeout(1000);
+
     int result = 0;
     if (http.begin(wifi, request)) {
         result = http.GET();
@@ -15,11 +18,14 @@ int sendMessage(const String& request) {
     wifi.stop();
     return result;
 }
-
 bool Logger::pollWrite(const Meteo& meteo) {
-    static Delay delay;
-    if (WiFi.isConnected() && DateTime::now().toSecondsSinceEpoch() > 1000000L) {
-        if (loggingPeriod > 0UL && delay.zero_or_await(loggingPeriod)) {
+    static unsigned long delay = 0UL;
+    static WatchMS watch;
+
+    if (loggingPeriod > 0UL && WiFi.isConnected() && DateTime::isSyncronized()) {
+        if (watch.is_passed(delay)) {
+            watch.try_advance_or_reset(delay);
+
             String request(loggingRequest);
             request.replace(F("{TIMEX}"), String(meteo.timex));
             request.replace(F("{MEASX}"), String(meteo.measx));
@@ -27,10 +33,17 @@ bool Logger::pollWrite(const Meteo& meteo) {
             request.replace(F("{TEMP1}"), String(meteo.temp1));
             request.replace(F("{PRESS}"), String(meteo.press));
             request.replace(F("{TEMP2}"), String(meteo.temp2));
-            if (sendMessage(request) == 200) {
+
+            if (sendMessage(request) == HTTP_CODE_OK) {
+                countSuccess += countSuccess < UINT32_MAX ? 1U : 0U;
+                countLastFails = 0U;
+                delay = loggingPeriod;
                 return true;
             }
-            else delay.revert(loggingPeriod);
+
+            countLastFails += countLastFails < UINT32_MAX ? 1U : 0U;
+            countFails += countFails < UINT32_MAX ? 1U : 0U;
+            delay = min(countLastFails, 30U) * 10000;
         }
     }
     return false;
