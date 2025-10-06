@@ -13,6 +13,13 @@
             font-size: 1em;
             letter-spacing: -0.04em;
         }
+        div.container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 25em;
+            margin: 0 auto;
+        }
         h1 {
             margin: 0.5em 0 0.5em 1.2em;
             text-align: center;
@@ -22,11 +29,6 @@
             vertical-align:bottom;
             margin-left: 0.25rem;
             font-size: 15px;
-        }
-        .container {
-            max-width: 25em;
-            margin: 0 auto;
-            padding: 0.5em;
         }
         h4 {
             max-width: calc(var(--width) + 2.5rem);
@@ -53,6 +55,12 @@
             font-size: 1.1rem;
             font-weight: bold;
         }
+        div.links-panel {
+            margin: auto 0 1em 0;
+        }
+        a:link, a:visited, a:hover, a:active {
+            color: unset;
+        }
     </style>
 </head>
 <body>
@@ -70,9 +78,11 @@
         <div class="param">Measurement: {MEASX}</div>
         <div class="param" title="total success / total fails / last fails">Logger: {TSUCC}/{TFAIL}/{LFAIL}</div>
 
-        <h4>Links</h4>
-        <div class="param"><a href="device-setup">Device Setup</a></div>
-        <div class="param"><a href="logger-setup">Logger Setup</a></div>
+        <div class="links-panel">
+            <h4>Links</h4>
+            <div class="param"><a href="device-setup">Device Setup</a></div>
+            <div class="param"><a href="logger-setup">Logger Setup</a></div>
+        </div>
     </div>
 </body>
 </html>

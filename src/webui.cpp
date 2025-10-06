@@ -14,6 +14,13 @@ extern Logger logger;
 
 WebServer webServer(80);
 
+bool isSubnetEquals(const IPAddress& a, const IPAddress& b, const IPAddress& mask) {
+    for (uint8_t i = 0; i < 4; ++i)
+        if ((a[i] & mask[i]) != (b[i] & mask[i]))
+            return false;
+    return true;
+}
+
 String loadPageTemplate(const String& name) {
     String data, path(F("/webui/templates/{NAME}.html"));
     path.replace(F("{NAME}"), name);
@@ -26,9 +33,26 @@ String loadPageTemplate(const String& name) {
     return data;
 }
 
+bool checkClientLocal() {
+    if (WiFi.getMode() == WIFI_MODE_AP || isSubnetEquals(
+            webServer.client().remoteIP(), WiFi.localIP(), WiFi.subnetMask()))
+        return true;
+    else {
+        String html = loadPageTemplate(F("error"));
+        if (html.length()) {
+            html.replace(F("{ERRNUM}"), String(403));
+            html.replace(F("{ERRTXT}"), F("Forbidden"));
+            webServer.send(404, F("text/html"), html);
+        }
+    }
+    return false;
+}
+
 bool checkAuthentified() {
     if(WiFi.getMode() == WIFI_AP)
         return true;
+    if (!checkClientLocal())
+        return false;
     String user = getStringPartCsv(cfg.auth, 0), pass = getStringPartCsv(cfg.auth, 1);
     if (webServer.authenticate(user.c_str(), pass.c_str())) {
         #if DEBUG
@@ -43,10 +67,10 @@ bool checkAuthentified() {
 
         String html = loadPageTemplate(F("error"));
         if (html.length()) {
-            html.replace(F("{ERRNUM}"), String(511));
-            html.replace(F("{ERRTXT}"), F("Authentication required"));
+            html.replace(F("{ERRNUM}"), String(401));
+            html.replace(F("{ERRTXT}"), F("Unauthorized"));
         }
-        else html = F("Error 511: Authentication required");
+        else html = F("Error 401: Unauthorized");
         webServer.requestAuthentication(BASIC_AUTH, "IOT-DEVICE-BASIC-AUTH-REALM", html);
     }
     return false;
