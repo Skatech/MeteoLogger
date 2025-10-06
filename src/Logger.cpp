@@ -2,7 +2,7 @@
 #include <HTTPClient.h>
 #include <DateTime.h>
 #include "Logger.h"
-#include "Delay.h"
+#include "Timers.h"
 
 int sendMessage(const String& request) {
     WiFiClient wifi;
@@ -18,13 +18,14 @@ int sendMessage(const String& request) {
     wifi.stop();
     return result;
 }
+
 bool Logger::pollWrite(const Meteo& meteo) {
     static unsigned long delay = 0UL;
-    static WatchMS watch;
+    static TimerMS timer;
 
     if (loggingPeriod > 0UL && WiFi.isConnected() && DateTime::isSyncronized()) {
-        if (watch.is_passed(delay)) {
-            watch.try_advance_or_reset(delay);
+        if (timer.is_passed(delay)) {
+            timer.try_advance_or_reset(delay);
 
             String request(loggingRequest);
             request.replace(F("{TIMEX}"), String(meteo.timex));
