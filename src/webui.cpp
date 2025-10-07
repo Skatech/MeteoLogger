@@ -133,14 +133,14 @@ void webServerOnDeviceSetupPOST() {
         webServer.sendHeader(F("Location"), String(F("http://")) + webServer.hostHeader(), true);
         webServer.send(302, F("text/plain"), F("Redirecting to main page"));
 
-        Serial.println(F("Device config updated\n=============================="));
-        cfg.print();
-        Serial.println(F("==============================\n"));
+        // Serial.println(F("Device config updated\n=============================="));
+        // cfg.print();
+        // Serial.println(F("==============================\n"));
 
-        // Serial.print(F("Device configuration updated. Saving... "));
-        // Serial.println(cfg.save() ? F("OK") : F("FAILED"));
-        // Serial.println(F("Restarting device..."));
-        // ESP.restart();
+        Serial.print(F("Device configuration updated. Saving... "));
+        Serial.println(cfg.save() ? F("OK") : F("FAILED"));
+        Serial.println(F("Restarting device..."));
+        ESP.restart();
     }
 }
 

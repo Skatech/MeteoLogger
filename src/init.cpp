@@ -10,22 +10,32 @@
 #define WPS_HIDDEN      0
 #define WPS_MAXCONN     1
 
-// On init check WPS button state and select device mode;
-// Restart device when WPS button pressed in normal mode;
-// Return false in normal mode, true in WPS
-bool monitorModeWPS(bool init) {
-    static bool wps = false;
-    if (!wps) {
-        if (init) {
-            pinMode(WPS_BUTTON_PIN, INPUT_PULLUP);
-            wps = digitalRead(WPS_BUTTON_PIN) == LOW;
-        }
-        else if (digitalRead(WPS_BUTTON_PIN) == LOW) {
-            Serial.println(F("Restarting device in WPS mode\n\n"));
-            ESP.restart();
-        }
+// On initial call check WPS button state and select device mode;
+// On next calls restart device if WPS/boot button pressed;
+// Return false if normal mode, true if WPS
+bool monitorModeWPS() {
+    static bool modeWPS = false, initialCall = true;
+
+    auto getButtonPressed = []() {
+        pinMode(WPS_BUTTON_PIN, INPUT_PULLUP);
+        bool pressed = LOW == digitalRead(WPS_BUTTON_PIN);
+        pinMode(WPS_BUTTON_PIN, INPUT);
+        return pressed;
+    };
+
+    if (initialCall) {
+        initialCall = false;
+        modeWPS = getButtonPressed();
+        while(getButtonPressed())
+            delay(100);
     }
-    return wps;
+    else if (getButtonPressed()) {
+        Serial.println(F("Restarting device by WPS button\n\n"));
+        Serial.flush();
+        ESP.restart();
+    }
+
+    return modeWPS;
 }
 
 template <typename T> void annotateValue(const __FlashStringHelper* title, const T& value) {
@@ -123,7 +133,7 @@ void initConnection(const DeviceConfig& cfg) {
         haltOnCriticalError(F("Unable to start connection, device HALTED"));
     }
 
-    for(int attempt = 0; watchConnection() == false; ++attempt) {
+    for(int attempt = 0; !watchConnection(); ++attempt) {
         if (attempt == 60) {
             Serial.println();
             printInfoWPS();

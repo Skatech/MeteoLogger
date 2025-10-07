@@ -17,7 +17,7 @@ void setup(void) {
 
     mountFileSystem();
     
-    if (monitorModeWPS(true)) {
+    if (monitorModeWPS()) {
         loadDeviceConfig(cfg, true);
         initAP();
         initWebServerAP();

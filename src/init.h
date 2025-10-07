@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "DeviceConfig.h"
 
-bool monitorModeWPS(bool init = false);
+bool monitorModeWPS();
 bool watchConnection();
 void initConnection(const DeviceConfig& cfg);
 void initTimeSync(const DeviceConfig& cfg);
